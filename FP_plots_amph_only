@@ -1,0 +1,216 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from smooth_signal import smooth_signal
+from airPLS import airPLS
+from get_zdFF import get_zdFF
+import os
+
+# MAKE SURE FILE PATH AND ZDFF CSV PATH NAMES MATCH!!
+# only read manipulated data files
+
+#file_path = '/Users/samdhanani/Desktop/MuhleLab/FiberPhotometry/Cohort_G/219_5/transformed_files/219_5_30min_baseline.csv'
+#df = pd.read_csv(file_path)
+#pdf_pages = PdfPages('/Users/samdhanani/Desktop/MuhleLab/FiberPhotometry/Cohort_G/219_5/219_5_amph.pdf')
+
+def create_amph_folder(cohort_folder):
+    amph_folder = os.path.join(cohort_folder, 'amph')
+    if not os.path.exists(amph_folder):
+        os.makedirs(amph_folder)
+    return amph_folder
+
+# Path to the folder containing subject folders
+cohort_folder = '/Users/samdhanani/Desktop/MuhleLab/FiberPhotometry/Cohort_G'
+
+# Get a list of subject folders
+subject_folders = [folder for folder in os.listdir(cohort_folder) if os.path.isdir(os.path.join(cohort_folder, folder))]
+
+for subject_folder in subject_folders:
+    # Construct paths to subject files
+    transformed_files_folder = os.path.join(cohort_folder, subject_folder, 'transformed_files')
+    
+    # Get the path to the CSV file in the transformed_files folder
+    plot_file_name = subject_folder + '_60min_amph_timeadjusted.csv'
+    plot_file_path = os.path.join(transformed_files_folder, plot_file_name)
+
+    # Create amph folder outside of transformed_files
+    amph_folder = create_amph_folder(os.path.join(cohort_folder, subject_folder))
+
+    # Read the CSV file
+    df = pd.read_csv(plot_file_path)
+
+    # Save to amph folder
+    new_file_path = os.path.join(amph_folder, plot_file_name)
+    df.to_csv(new_file_path, index=False)
+    # Create PDF pages for plots
+    pdf_file_path = os.path.join(amph_folder, subject_folder + '_plots_amph.pdf')
+    pdf_pages = PdfPages(pdf_file_path)
+
+    # Adjust timestamps and filter the data
+    start_time = df['ComputerTimestamp'].iloc[0]
+    df['ComputerTimestamp'] = (df['ComputerTimestamp'] - start_time) / 1000
+
+    # Separate raw data and timestamps for reference and signal
+    reference_state = df['LedState'] == 1
+    signal_state = df['LedState'] == 2
+    raw_reference = df.loc[reference_state, 'G0']
+    raw_signal = df.loc[signal_state, 'G0']
+    reference_timestamps = df.loc[reference_state, 'ComputerTimestamp']
+    signal_timestamps = df.loc[signal_state, 'ComputerTimestamp']
+
+    # smooth 
+    smooth_win = 10
+    # This defines the window size for the smoothing process.
+    smoothed_reference = smooth_signal(raw_reference, smooth_win)
+    # This applies smoothing to the raw reference signal (raw_reference) using the specified window size (smooth_win).
+    smoothed_signal = smooth_signal(raw_signal, smooth_win)
+    # this applies smoothing to the raw signal (raw_signal) using the same window size (smooth_win).
+
+    # Raw Data Plot
+    fig = plt.figure(figsize=(16, 10))
+    ax1 = fig.add_subplot(211)
+    ax1.plot(reference_timestamps, raw_reference, 'purple', linewidth=1.5)
+    plt.title('Raw Data: Reference (Amph)')
+    plt.xlabel('Time (seconds)')
+    ax2 = fig.add_subplot(212)
+    ax2.plot(signal_timestamps, raw_signal, 'blue', linewidth=1.5)
+    plt.title('Raw Data: Signal (Amph)')
+    plt.xlabel('Time (seconds)')
+    pdf_pages.savefig()
+    #plt.show()
+
+    #Smoothed Data
+    fig = plt.figure(figsize=(16, 10))
+    ax1 = fig.add_subplot(211)
+    ax1.plot(reference_timestamps, smoothed_reference, 'purple', linewidth=1.5)
+    plt.title('Smoothed Reference (Amph)')
+    plt.xlabel('Time (seconds)')
+    ax2 = fig.add_subplot(212)
+    ax2.plot(signal_timestamps, smoothed_signal, 'blue', linewidth=1.5)
+    plt.title('Smoothed Signal (Amph)')
+    plt.xlabel('Time (seconds)')
+    pdf_pages.savefig()
+    #plt.show()
+
+    # Finding the baseline using airPLS to correct for baseline drift
+    lambd = 5e4 # Adjust lambda to get the best fit
+    porder = 1
+    itermax = 50
+    r_base = airPLS(smoothed_reference.T, lambda_=lambd, porder=porder, itermax=itermax)
+    s_base = airPLS(smoothed_signal, lambda_=lambd, porder=porder, itermax=itermax)
+
+    # Remove the baseline and adjust timestamps
+    min_length = min(len(raw_reference), len(raw_signal))
+
+    reference = smoothed_reference[:min_length] - r_base[:min_length]
+    signal = smoothed_signal[:min_length] - s_base[:min_length]
+
+    reference_timestamps = reference_timestamps[:min_length]
+    signal_timestamps = signal_timestamps[:min_length]
+
+    smoothed_reference = smoothed_reference[:min_length]
+    smoothed_signal = smoothed_signal[:min_length]
+
+    r_base = r_base[:min_length]
+    s_base = s_base[:min_length]
+
+    raw_reference = raw_reference[:min_length]
+    raw_signal = raw_signal[:min_length]
+
+
+    fig = plt.figure(figsize=(16, 10))
+    ax1 = fig.add_subplot(211)
+    ax1.plot(reference_timestamps, smoothed_reference, 'purple', linewidth=1.5)
+    ax1.plot(reference_timestamps, r_base, 'black', linewidth=1.5)
+    plt.title('Smoothed Reference with baseline using airPLS to correct for baseline drift (Amph)')
+    plt.xlabel('Time (Seconds)')
+    ax2 = fig.add_subplot(212)
+    ax2.plot(signal_timestamps, smoothed_signal, 'blue', linewidth=1.5)
+    ax2.plot(signal_timestamps, s_base, 'black', linewidth=1.5)
+    plt.title('Smoothed signal with baseline using airPLS to correct for baseline drift (Amph)')
+    plt.xlabel('Time (Seconds)')
+    pdf_pages.savefig()
+    #plt.show()
+
+
+    fig = plt.figure(figsize=(16, 10))
+    ax1 = fig.add_subplot(211)
+    ax1.plot(reference_timestamps, reference, 'purple', linewidth=1.5)
+    plt.title('Reference: baseline removed from smoothed reference (Amph)')
+    plt.xlabel('Time (seconds)')
+    ax2 = fig.add_subplot(212)
+    ax2.plot(signal_timestamps, signal, 'blue', linewidth=1.5)
+    plt.title('Signal: baseline removed from smoothed signal (Amph)')
+    plt.xlabel('Time (seconds)')
+    pdf_pages.savefig()
+    #plt.show()
+
+    # standardize signals by subtracting the median of the signal from each data point 
+    # and then dividing by the standard deviation of the signal
+    z_reference = (reference - np.median(reference)) / np.std(reference)
+    z_signal = (signal - np.median(signal)) / np.std(signal)
+    fig = plt.figure(figsize=(16, 10))
+    ax1 = fig.add_subplot(211)
+    ax1.plot(reference_timestamps, z_reference, 'purple', linewidth=1.5)
+    plt.title('Standardized signals: 415 signal (Amph)')
+    plt.xlabel('Time (seconds)')
+    ax2 = fig.add_subplot(212)
+    ax2.plot(signal_timestamps, z_signal, 'blue', linewidth=1.5)
+    plt.title('Standardized signals: 470 signal (Amph)')
+    plt.xlabel('Time (seconds)')
+    pdf_pages.savefig()
+    #plt.show()
+
+    # Fitting the reference signal to the calcium signal using linear regression
+    # Linear regression is performed using the Lasso regression model from scikit-learn. 
+    # The reference signal (z_reference) is used as the independent variable, and the calcium signal (z_signal) is used as the dependent variable. 
+    # The fit method is called to train the regression model.
+    from sklearn.linear_model import Lasso
+    lin = Lasso(alpha=0.0001, precompute=True, max_iter=1000, positive=True, random_state=9999, selection='random')
+    n = len(z_reference)
+    lin.fit(z_reference.reshape(n, 1), z_signal[:n].reshape(n, 1))
+    fig = plt.figure(figsize=(16, 8))
+    ax1 = fig.add_subplot(111)
+    ax1.plot(z_reference, z_signal, 'b.')
+    ax1.plot(z_reference, lin.predict(z_reference.reshape(n, 1)), 'r--', linewidth=1.5)
+    plt.title('Linear Regression Fit of Reference Signal to Calcium Signal (Amph)')
+    pdf_pages.savefig()
+    # plt.show()
+
+    # the alignment of the reference signal to the calcium signal after performing linear regression fitting
+    z_reference_fitted = lin.predict(z_reference.reshape(n, 1)).reshape(n, )
+    fig = plt.figure(figsize=(16, 8))
+    ax1 = fig.add_subplot(111)
+    ax1.plot(signal_timestamps, z_signal[:n], 'blue')
+    ax1.plot(reference_timestamps, z_reference_fitted, 'purple')
+    plt.title('Alignment of Reference to Signal (Amph)')
+    pdf_pages.savefig()
+    #plt.show()
+
+    # Calculate z-score dF/F
+    zdFF = get_zdFF(raw_reference, raw_signal)
+    # Calculate the time range
+    time_range = signal_timestamps.iloc[-1] - signal_timestamps.iloc[0]
+    # Calculate the adjusted timestamps
+    adjusted_timestamps = np.linspace(0, time_range, len(zdFF))
+    # Plot zdFF
+    plt.figure(figsize=(16, 8))
+    plt.plot(adjusted_timestamps, zdFF, 'black', linewidth=1.5)
+    plt.title('Calculate z-score dF/F (Amph)')
+    plt.xlabel('Time (seconds)')
+    plt.ylabel('z-scored ΔF/F values')
+    pdf_pages.savefig()
+    #plt.show()
+    pdf_pages.close()
+
+    plt.close('all')
+
+    # Create DataFrame with timestamps and zdFF values
+    zdFF_data = pd.DataFrame({'Timestamp': adjusted_timestamps, 'zdFF': zdFF})
+    # Get the subject folder name
+    subject_folder_name = os.path.basename(os.path.normpath(amph_folder))
+    # Specify the path to save the CSV file inside the full_session folder
+    zdFF_csv_path = os.path.join(amph_folder, f'{subject_folder}_{os.path.basename(amph_folder)}_zdFF.csv')    # Save DataFrame to a CSV file inside the full_session folder
+    zdFF_data.to_csv(zdFF_csv_path, index=False)
+    print("zdFF data saved:", zdFF_csv_path)

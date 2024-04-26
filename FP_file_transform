@@ -1,0 +1,173 @@
+import pandas as pd
+import numpy as np
+import os
+
+def create_transformed_files_folder(subject_folder_path):
+    transformed_files_folder = os.path.join(subject_folder_path, 'transformed_files')
+    if not os.path.exists(transformed_files_folder):
+        os.makedirs(transformed_files_folder)
+    return transformed_files_folder
+
+# Path to the folder containing subject folders
+cohort_folder = '/Users/samdhanani/Desktop/MuhleLab/FiberPhotometry/Cohort_G'
+
+# Get a list of subject folders
+subject_folders = [folder for folder in os.listdir(cohort_folder) if os.path.isdir(os.path.join(cohort_folder, folder))]
+
+for subject_folder in subject_folders:
+    # Construct paths to subject files
+    subject_folder_path = os.path.join(cohort_folder, subject_folder)
+    transformed_files_folder = create_transformed_files_folder(subject_folder_path)  # Create transformed_files folder
+    
+    csv_file_path = os.path.join(subject_folder_path, subject_folder + '.csv')
+    handle_file_path = os.path.join(subject_folder_path, subject_folder + 'Handle.csv')
+    injection_file_path = os.path.join(subject_folder_path, subject_folder + 'Injection.csv')
+    start_file_path = os.path.join(subject_folder_path, subject_folder + 'Start.csv')
+
+    csv_file_df = pd.read_csv(csv_file_path)
+
+    # Remove photobleaching data
+    start_time_df = pd.read_csv(start_file_path, header=None, names=['Item1', 'Item2'])
+    if not start_time_df.empty:
+        start_timestamp = start_time_df.loc[start_time_df['Item1'] == 'S', 'Item2'].values
+        if len(start_timestamp) > 0:
+            start_timestamp = float(start_timestamp[0])  # Convert to float if not already
+            print("Start Timestamp:", start_timestamp)
+
+            # Use the DataFrame 'csv_file_df' to filter out rows before the start time
+            photobleach_removed_df = csv_file_df[csv_file_df['ComputerTimestamp'] >= start_timestamp]
+
+            # Specify the file path for saving the filtered data
+            photobleach_removed_file_path = os.path.join(transformed_files_folder, subject_folder + '_photobleach_removed.csv')
+            photobleach_removed_df.to_csv(photobleach_removed_file_path, index=False)
+            print("Photobleach removed data saved to:", photobleach_removed_file_path)
+        else:
+            print("Error: No 'S' timestamp found in the DataFrame.")
+    else:
+        print("Error: Start time DataFrame is empty.")
+
+    # Photobleaching removed from the data; next: remove handling data
+    photobleach_removed_df = pd.read_csv(photobleach_removed_file_path)
+    handle_df = pd.read_csv(handle_file_path, header=None, names=['Item1', 'Item2'])
+    # Extract start and end timestamps
+    exclusion_ranges = []
+    current_start = None
+    for index, row in handle_df.iterrows():
+        if row['Item1'] == 'H' and current_start is None:
+            current_start = row['Item2']
+        elif row['Item1'] == 'H' and current_start is not None:
+            exclusion_ranges.append((current_start, row['Item2']))
+            current_start = None
+    # Filter data based on exclusion ranges
+    photobleach_handle_removed = photobleach_removed_df.copy()
+    for range_start, range_end in exclusion_ranges:
+        range_start = float(range_start)
+        range_end = float(range_end)
+        photobleach_handle_removed = photobleach_handle_removed[(photobleach_handle_removed['ComputerTimestamp'].astype(float) < range_start) | (photobleach_handle_removed['ComputerTimestamp'].astype(float) > range_end)]
+    photobleach_handle_removed_file_path = os.path.join(transformed_files_folder, subject_folder + '_photobleach_handle_removed.csv')
+    photobleach_handle_removed.to_csv(photobleach_handle_removed_file_path, index=False)
+    print("Photobleach and handle removed data saved to:", photobleach_handle_removed_file_path) 
+
+    # Load the data with photobleaching period removed
+    photobleach_handle_removed_df = pd.read_csv(photobleach_handle_removed_file_path)
+    injection_df = pd.read_csv(injection_file_path, header=None, names=['Item1', 'Item2'])
+    pre_injection_timestamp = injection_df.loc[injection_df['Item1'] == 'A', 'Item2'].values[0]
+    post_injection_timestamp = injection_df.loc[injection_df['Item1'] == 'A', 'Item2'].values[1]
+
+    pre_injection_timestamp_ms = float(pre_injection_timestamp)
+    post_injection_timestamp_ms = float(post_injection_timestamp)
+
+    pre_injection_df = photobleach_handle_removed_df[photobleach_handle_removed_df['ComputerTimestamp'] <= pre_injection_timestamp_ms]
+    post_injection_df = photobleach_handle_removed_df[photobleach_handle_removed_df['ComputerTimestamp'] >= post_injection_timestamp_ms]
+
+    pre_injection_file_path = os.path.join(transformed_files_folder, subject_folder + '_30min_baseline.csv')
+    post_injection_file_path = os.path.join(transformed_files_folder, subject_folder + '_60min_amph.csv')
+
+    pre_injection_df.to_csv(pre_injection_file_path, index=False)
+    post_injection_df.to_csv(post_injection_file_path, index=False)
+    print("Filtered data saved to:", pre_injection_file_path)
+    print("Filtered data saved to:", post_injection_file_path)
+
+    '''
+        export csv file with the time removed values
+    '''
+
+    def calculate_total_time_difference(df):
+        # Calculate time differences between consecutive rows
+        time_diff = df['ComputerTimestamp'].diff()
+        # Filter time differences larger than 17 milliseconds
+        large_time_diff = time_diff[time_diff > 17.055]
+        # Sum up all the time differences larger than 17 milliseconds
+        total_time_difference = large_time_diff.sum()
+        return total_time_difference
+
+    # Read pre-injection and post-injection CSV files
+    pre_injection_df = pd.read_csv(pre_injection_file_path)
+    post_injection_df = pd.read_csv(post_injection_file_path)
+    # Calculate total time differences larger than 17 milliseconds
+    total_time_difference_pre = calculate_total_time_difference(pre_injection_df)
+    total_time_difference_post = calculate_total_time_difference(post_injection_df)
+    filtered_data = [
+        ['Pre-injection', total_time_difference_pre],
+        ['Post-injection', total_time_difference_post],
+        # Add more rows as needed
+    ]
+    columns = ['', 'Total Time Difference']
+    filtered_df = pd.DataFrame(filtered_data, columns=columns)
+    filtered_csv_path = os.path.join(transformed_files_folder, subject_folder + '_time_subtracted_values.csv')
+    filtered_df.to_csv(filtered_csv_path, index=False)
+
+    '''
+        change the timestamp dataframe and save to new csv file for pre and post amph
+        overall, the total session time should be reduced
+    '''
+
+    def calculate_total_time_difference(df):
+        # Calculate time differences between consecutive rows
+        time_diff = df['ComputerTimestamp'].diff()
+        # Filter time differences larger than 17 milliseconds
+        large_time_diff = time_diff[time_diff > 17.055]
+        # Sum up all the time differences larger than 17 milliseconds
+        total_time_difference = large_time_diff.sum()
+        return total_time_difference
+    # Function to adjust timestamps ensuring they increase by approximately 17.0453 ms
+    def adjust_timestamps(df):
+        previous_timestamp = df.at[0, 'ComputerTimestamp']
+        for index, row in df.iterrows():
+            current_timestamp = row['ComputerTimestamp']
+            time_diff = current_timestamp - previous_timestamp
+            # Check if the time difference is approximately 17.0453 ms
+            if time_diff > 17.0453:
+                # Adjust the current timestamp to ensure it doesn't increase by more than 17.0453 ms
+                current_timestamp = previous_timestamp + 17.0453
+                # Update the timestamp in the DataFrame
+                df.at[index, 'ComputerTimestamp'] = current_timestamp
+            # Update the previous timestamp for the next iteration
+            previous_timestamp = current_timestamp
+    # Read pre-injection and post-injection CSV files
+    pre_injection_df = pd.read_csv(pre_injection_file_path)
+    post_injection_df = pd.read_csv(post_injection_file_path)
+    # Calculate total time differences larger than 17 milliseconds
+    total_time_difference_pre = calculate_total_time_difference(pre_injection_df)
+    total_time_difference_post = calculate_total_time_difference(post_injection_df)
+    # Adjust timestamps in pre-injection and post-injection DataFrames
+    adjust_timestamps(pre_injection_df)
+    adjust_timestamps(post_injection_df)
+
+    # Specify the file paths for the new CSV files
+    new_pre_injection_file_path = os.path.join(transformed_files_folder, subject_folder + '_30min_baseline_timeadjusted.csv')
+    new_post_injection_file_path = os.path.join(transformed_files_folder, subject_folder + '_60min_amph_timeadjusted.csv')
+
+    # Save the adjusted pre-injection and post-injection DataFrames to new CSV files
+    pre_injection_df.to_csv(new_pre_injection_file_path, index=False)
+    post_injection_df.to_csv(new_post_injection_file_path, index=False)
+
+
+    # Adjust timestamps and filter the data
+    start_time = photobleach_handle_removed_df['ComputerTimestamp'].iloc[0]  
+    # Convert milliseconds to seconds
+    handle_df['Item2'] = (pd.to_numeric(handle_df['Item2'], errors='coerce') - start_time) / 1000.0
+    # Save the converted timestamps to a new file
+    converted_file_path = os.path.join(transformed_files_folder, subject_folder + '_handle_read.csv')
+    handle_df.to_csv(converted_file_path, index=False)
+    print("read handling data:", converted_file_path)
