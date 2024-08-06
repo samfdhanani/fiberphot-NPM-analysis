@@ -1,10 +1,5 @@
 ### Analyzing Neurophotometrics FP3002 data with Python.
 
-All code has been adapted from:
-
-Martianova, E., Aronson, S., Proulx, C.D. Multi-Fiber Photometry to Record Neural Activity in Freely Moving Animal.. J. Vis. Exp. (152), e60278, doi: 10.3791/60278 (2019).
-https://github.com/katemartian/Photometry_data_processing
-
 ## The Bonsai workflow
 All node structures and workflows are from the Neurophotmetrics Bonsai Textbook linked here:
 https://static1.squarespace.com/static/60ff345fca665d50e1adc805/t/65366fc82f93fd1b67b65a5b/1698066378544/BonsaiGuide_20231023.pdf
