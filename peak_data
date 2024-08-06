@@ -1,0 +1,239 @@
+import pandas as pd
+from scipy.signal import find_peaks
+import numpy as np
+import os
+from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.pyplot as plt
+
+# Path to the folder containing subject folders
+cohort_folder = '/Users/samdhanani/Desktop/MuhleLab/FiberPhotometry/Cohort_G'
+
+# Define the suffix to be used for all new files
+suffix = 'thresh0'
+time = '0.1min'
+
+# Get a list of subject folders
+subject_folders = [folder for folder in os.listdir(cohort_folder) if os.path.isdir(os.path.join(cohort_folder, folder))]
+
+# Initialize lists to store peak data
+baseline_peak_data = []
+amph_peak_data = []
+full_session_peak_data = []
+peak_data = []
+auc_data = []
+
+for subject_folder in subject_folders:
+    # Construct paths to subject files
+    baseline_files_folder = os.path.join(cohort_folder, subject_folder, 'baseline')
+    amph_files_folder = os.path.join(cohort_folder, subject_folder, 'amph')
+    full_session_files_folder = os.path.join(cohort_folder, subject_folder, 'full_session')
+
+    # Check if the baseline and amph files exist
+    baseline_file_path = os.path.join(baseline_files_folder, f'{subject_folder}_baseline_{time}_dFF.csv')
+    amph_file_path = os.path.join(amph_files_folder, f'{subject_folder}_amph_{time}_dFF.csv')
+    full_session_file_path = os.path.join(full_session_files_folder, f'{subject_folder}_full_session_{time}_dFF.csv')
+
+    # Read the z-scored ΔF/F data
+    baseline_dFF_df = pd.read_csv(baseline_file_path)
+    amph_dFF_df = pd.read_csv(amph_file_path)
+    full_session_dFF_df = pd.read_csv(full_session_file_path)
+
+    # Extract Delta_F_over_F and Time columns for each dataset
+    baseline_dFF = baseline_dFF_df['dFF']
+    baseline_time = baseline_dFF_df['x axis']
+
+    amph_dFF = amph_dFF_df['dFF']
+    amph_time = amph_dFF_df['x axis']
+
+    full_session_dFF = full_session_dFF_df['dFF']
+    full_session_time = full_session_dFF_df['x axis']
+
+    # Parameters for peak detection
+    height = 0
+    sampling_rate = 60  # 60 Hz
+    time_interval = 0.1  # Minimum time interval between peaks in seconds
+    distance = None #int(time_interval * sampling_rate)
+
+    # Detect peaks for each dataset  
+    baseline_peaks, _ = find_peaks(baseline_dFF, height=height, distance=distance)
+    amph_peaks, _ = find_peaks(amph_dFF, height=height, distance=distance)
+    full_session_peaks, _ = find_peaks(full_session_dFF, height=height, distance=distance)
+
+    # Format peak data for baseline
+    baseline_peak_values = baseline_dFF.iloc[baseline_peaks]
+    baseline_peak_indices = baseline_peaks
+
+    # Format peak data for baseline
+    baseline_peak_values = baseline_dFF.iloc[baseline_peaks]
+    baseline_peak_indices = baseline_peaks
+    baseline_peak_df = pd.DataFrame({'peak index': baseline_peak_indices, 'dFF': baseline_peak_values})
+    baseline_peak_csv_path = os.path.join(baseline_files_folder, f'{subject_folder}_baseline_peak_values_{time}_{suffix}.csv')
+    baseline_peak_df.to_csv(baseline_peak_csv_path, index=False)
+    print(f"Baseline peak values saved to: {baseline_peak_csv_path}")
+
+    # Format peak data for baseline
+    for i, peak_idx in enumerate(baseline_peaks):
+        start_time = baseline_time.iloc[peak_idx]
+        end_time = baseline_time.iloc[peak_idx + 1] if peak_idx + 1 < len(baseline_time) else np.nan
+        if not np.isnan(end_time):  # Ensure end time is valid
+            start_dff = baseline_dFF.iloc[peak_idx]
+            end_dff = baseline_dFF.iloc[peak_idx + 1]
+            baseline_peak_data.append({
+                'Subject Folder': subject_folder,
+                'Peak Number': f'Peak {i + 1}',
+                'Start Time': start_time,
+                'End Time': end_time,
+                'Start dFF': start_dff,
+                'End dFF': end_dff
+            })
+
+    # Format peak data for amph
+    for i, peak_idx in enumerate(amph_peaks):
+        start_time = amph_time.iloc[peak_idx]
+        end_time = amph_time.iloc[peak_idx + 1] if peak_idx + 1 < len(amph_time) else np.nan
+        if not np.isnan(end_time):  # Ensure end time is valid
+            start_dff = amph_dFF.iloc[peak_idx]
+            end_dff = amph_dFF.iloc[peak_idx + 1]
+            amph_peak_data.append({
+                'Subject Folder': subject_folder,
+                'Peak Number': f'Peak {i + 1}',
+                'Start Time': start_time,
+                'End Time': end_time,
+                'Start dFF': start_dff,
+                'End dFF': end_dff
+            })
+
+    # # Create DataFrames from peak data
+    baseline_peak_df = pd.DataFrame(baseline_peak_data)
+    amph_peak_df = pd.DataFrame(amph_peak_data)
+
+    # Define CSV file paths
+    baseline_peak_csv_path = os.path.join(baseline_files_folder, f'{subject_folder}_baseline_peak_startend_{time}_{suffix}.csv')
+    amph_peak_csv_path = os.path.join(amph_files_folder, f'{subject_folder}_amph_peak_startend_{time}_{suffix}.csv')
+    full_session_peak_csv_path = os.path.join(full_session_files_folder, f'{subject_folder}_full_session_peak_startend_{time}_{suffix}.csv')
+
+    # Export DataFrames to CSV
+    baseline_peak_df.to_csv(baseline_peak_csv_path, index=False)
+    amph_peak_df.to_csv(amph_peak_csv_path, index=False)
+
+    baseline_peak_timestamps = baseline_time.iloc[baseline_peaks]
+    baseline_peak_values = baseline_dFF.iloc[baseline_peaks]
+
+    amph_peak_timestamps = amph_time.iloc[amph_peaks]
+    amph_peak_values = amph_dFF.iloc[amph_peaks]
+
+    full_session_peak_timestamps = full_session_time.iloc[full_session_peaks]
+    full_session_peak_values = full_session_dFF.iloc[full_session_peaks]
+
+    baseline_frequency = len(baseline_peaks) / (baseline_time.iloc[-1] - baseline_time.iloc[0])
+    baseline_indiv_amplitudes = baseline_peak_values - baseline_peak_values.min()  # Calculate amplitude for each peak individually
+    baseline_average_amplitude = baseline_indiv_amplitudes.mean()
+
+    amph_frequency = len(amph_peaks) / (amph_time.iloc[-1] - amph_time.iloc[0])
+    amph_indiv_amplitudes = amph_peak_values - amph_peak_values.min()  # Calculate amplitude for each peak individually
+    amph_average_amplitude = amph_indiv_amplitudes.mean()
+
+    amph_peak_auc = 0
+    for i in range(len(amph_peak_timestamps) - 1):
+        peak_start = amph_peak_timestamps.iloc[i]
+        peak_end = amph_peak_timestamps.iloc[i + 1]
+        peak_area = np.trapz(amph_dFF[(amph_time >= peak_start) & (amph_time <= peak_end)], 
+                             amph_time[(amph_time >= peak_start) & (amph_time <= peak_end)])
+        amph_peak_auc += peak_area
+
+    baseline_num_peaks = len(baseline_peaks)
+    amph_num_peaks = len(amph_peaks)
+
+    baseline_total_time = np.subtract(baseline_dFF_df['ComputerTimestamp'].iloc[-1], baseline_dFF_df['ComputerTimestamp'].iloc[0])
+    baseline_total_time_sec = np.divide(baseline_total_time, 1000)
+    baseline_total_time_min = np.divide(baseline_total_time_sec, 60)
+
+    baseline_average_dFF = baseline_dFF.mean()
+    baseline_std_dFF = baseline_dFF.std()
+
+    amph_average_dFF = amph_dFF.mean()
+    amph_std_dFF = amph_dFF.std()
+    
+    baseline_peakspersec = np.divide(baseline_num_peaks,baseline_total_time_sec) 
+    baseline_peakspermin = np.divide(baseline_num_peaks,baseline_total_time_min)
+
+    peak_data.append([
+        subject_folder,
+        'baseline',
+        baseline_average_dFF, 
+        baseline_std_dFF, 
+        baseline_num_peaks,
+        baseline_peakspersec,
+        baseline_peakspermin,
+        baseline_frequency, 
+        baseline_average_amplitude, 
+    ])
+
+    auc_data.append([
+        subject_folder,
+        'amph',
+        amph_peak_auc,
+    ])
+
+    # Create a DataFrame from all_peak_data and save to a CSV file
+    columns = ['Subject Folder', 'Condition', 'Average dFF', 'Std dFF', 'Number of Peaks', 'Peaks per sec', 'Peaks per min','Frequency', 'Average Amplitude']
+    peak_df = pd.DataFrame(peak_data, columns=columns)
+    peak_csv_path = os.path.join(cohort_folder, f'peak_data_{time}_{suffix}.csv')
+    peak_df.to_csv(peak_csv_path, index=False)
+
+    print("All peak data saved to CSV file.")
+
+    columns = ['Subject Folder', 'Condition', 'AUC']
+    auc_data_df = pd.DataFrame(auc_data, columns=columns)
+    auc_data_csv_path = os.path.join(cohort_folder, f'auc_{time}_{suffix}.csv')
+    auc_data_df.to_csv(auc_data_csv_path, index=False)
+
+    print("AUC data for amph saved")
+
+    baseline_pdf_file_path = os.path.join(baseline_files_folder, subject_folder + f'_plots_dFF_{time}_{suffix}.pdf')
+    baseline_pdf_pages = PdfPages(baseline_pdf_file_path)
+
+    amph_pdf_file_path = os.path.join(amph_files_folder, subject_folder + f'_plots_dFF_{time}_{suffix}.pdf')
+    amph_pdf_pages = PdfPages(amph_pdf_file_path) 
+
+    full_session_pdf_file_path = os.path.join(full_session_files_folder, subject_folder + f'_plots_dFF_{time}_{suffix}.pdf')
+    full_session_pdf_pages = PdfPages(full_session_pdf_file_path)
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(baseline_dFF_df['x axis'], baseline_dFF_df['dFF'], color='black', linewidth=1)
+    plt.plot(baseline_peak_timestamps, baseline_peak_values, 'ro', markersize=5)  # Mark detected peaks
+    plt.title('Detected Peaks for Baseline')
+    plt.xlabel('Time (seconds)')
+    plt.ylabel('z-scored ΔF/F values')
+    plt.grid(True)
+    baseline_pdf_pages.savefig()
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(amph_dFF_df['x axis'], amph_dFF_df['dFF'], color='black', linewidth=1)
+    plt.plot(amph_peak_timestamps, amph_peak_values, 'ro', markersize=5)  # Mark detected peaks
+    plt.title('Detected Peaks for Amph')
+    plt.xlabel('Time (seconds)')
+    plt.ylabel('z-scored ΔF/F values')
+    plt.grid(True)
+    amph_pdf_pages.savefig()
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(full_session_dFF_df['x axis'], full_session_dFF_df['dFF'], color='black', linewidth=1)
+    plt.plot(full_session_peak_timestamps, full_session_peak_values, 'ro', markersize=5)  # Mark detected peaks
+    plt.title('Detected Peaks for full session')
+    plt.xlabel('Time (seconds)')
+    plt.ylabel('z-scored ΔF/F values')
+    plt.grid(True)
+    full_session_pdf_pages.savefig()
+
+    baseline_pdf_pages.close()
+    amph_pdf_pages.close()
+    full_session_pdf_pages.close()
+    plt.close('all')
+
+    print(baseline_peak_values)
+
+    baseline_peak_df = pd.DataFrame({'Timestamp': baseline_peak_timestamps, 'Amplitude': baseline_indiv_amplitudes})
+    baseline_peak_csv_path = os.path.join(baseline_files_folder, f'{subject_folder}_{os.path.basename(baseline_files_folder)}_amplitudes_{time}_{suffix}.csv')
+    baseline_peak_df.to_csv(baseline_peak_csv_path, index=False)
+    print("Baseline peak information saved to:", baseline_peak_csv_path)
