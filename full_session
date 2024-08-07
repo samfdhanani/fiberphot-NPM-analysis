@@ -10,7 +10,7 @@ def create_folder(path):
     return path
 
 type = 'full_session'
-time = 'all'
+time = '10min' # 'all' for uncropped full session file
 c = None #0      # x axis lower limit
 d = None #36000  # x axis upper limit
 e = None #-0.05   # y axis lower limit
@@ -65,8 +65,6 @@ for subject_folder in subject_folders:
     # Find the minimum length of the pre-injection datasets
     min_length_pre = min(len(aligned_reference_pre), len(aligned_signal_pre))
 
-    #print(min_length_pre)
-
     # Truncate the longer pre-injection dataset to match the minimum length
     aligned_reference_pre = aligned_reference_pre[:min_length_pre]
     aligned_signal_pre = aligned_signal_pre[:min_length_pre]
@@ -100,8 +98,6 @@ for subject_folder in subject_folders:
     # Find the minimum length of the post-injection datasets
     min_length_post = min(len(aligned_reference_post), len(aligned_signal_post))
     
-    #print(min_length_post)
-
 
     # Truncate the longer post-injection dataset to match the minimum length
     aligned_reference_post = aligned_reference_post[:min_length_post]
@@ -128,7 +124,7 @@ for subject_folder in subject_folders:
     plt.figure(figsize=(16, 8))
     plt.plot(x_axis, dff, 'black', linewidth=1.5)
     plt.axvline(x=pre_injection_index + 1, color='red', linestyle='--', linewidth=2, label='Injection Time')
-    plt.xlabel(f'x axis for {time} ')
+    plt.xlabel(f'x axis for {time}')
     plt.ylabel('ΔF/F')
     plt.xlim(c,d)
     plt.ylim(e,f)
