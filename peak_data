@@ -63,6 +63,10 @@ for subject_folder in subject_folders:
     pre_injection_peak_values = pre_injection_dFF.iloc[pre_injection_peaks]
     pre_injection_peak_indices = pre_injection_peaks
 
+    # Format peak data for post_injection
+    post_injection_peak_values = post_injection_dFF.iloc[post_injection_peaks]
+    post_injection_peak_indices = post_injection_peaks
+
     # Format peak data for pre_injection
     pre_injection_peak_values = pre_injection_dFF.iloc[pre_injection_peaks]
     pre_injection_peak_indices = pre_injection_peaks
@@ -72,6 +76,14 @@ for subject_folder in subject_folders:
     print(f"pre_injection peak values saved to: {pre_injection_peak_csv_path}")
 
     # Format peak data for pre_injection
+    post_injection_peak_values = post_injection_dFF.iloc[post_injection_peaks]
+    post_injection_peak_indices = post_injection_peaks
+    post_injection_peak_df = pd.DataFrame({'peak index': post_injection_peak_indices, 'dFF': post_injection_peak_values})
+    post_injection_peak_csv_path = os.path.join(post_injection_files_folder, f'{subject_folder}_post_injection_peak_values_{time}_{suffix}.csv')
+    post_injection_peak_df.to_csv(post_injection_peak_csv_path, index=False)
+    print(f"post_injection peak values saved to: {post_injection_peak_csv_path}")
+
+ # Format peak data for pre_injection
     for i, peak_idx in enumerate(pre_injection_peaks):
         start_time = pre_injection_time.iloc[peak_idx]
         end_time = pre_injection_time.iloc[peak_idx + 1] if peak_idx + 1 < len(pre_injection_time) else np.nan
@@ -79,7 +91,6 @@ for subject_folder in subject_folders:
             start_dff = pre_injection_dFF.iloc[peak_idx]
             end_dff = pre_injection_dFF.iloc[peak_idx + 1]
             pre_injection_peak_data.append({
-                'Subject Folder': subject_folder,
                 'Peak Number': f'Peak {i + 1}',
                 'Start Time': start_time,
                 'End Time': end_time,
@@ -95,7 +106,6 @@ for subject_folder in subject_folders:
             start_dff = post_injection_dFF.iloc[peak_idx]
             end_dff = post_injection_dFF.iloc[peak_idx + 1]
             post_injection_peak_data.append({
-                'Subject Folder': subject_folder,
                 'Peak Number': f'Peak {i + 1}',
                 'Start Time': start_time,
                 'End Time': end_time,
@@ -110,7 +120,6 @@ for subject_folder in subject_folders:
     # Define CSV file paths
     pre_injection_peak_csv_path = os.path.join(pre_injection_files_folder, f'{subject_folder}_pre_injection_peak_startend_{time}_{suffix}.csv')
     post_injection_peak_csv_path = os.path.join(post_injection_files_folder, f'{subject_folder}_post_injection_peak_startend_{time}_{suffix}.csv')
-    full_session_peak_csv_path = os.path.join(full_session_files_folder, f'{subject_folder}_full_session_peak_startend_{time}_{suffix}.csv')
 
     # Export DataFrames to CSV
     pre_injection_peak_df.to_csv(pre_injection_peak_csv_path, index=False)
@@ -230,8 +239,6 @@ for subject_folder in subject_folders:
     post_injection_pdf_pages.close()
     full_session_pdf_pages.close()
     plt.close('all')
-
-    print(pre_injection_peak_values)
 
     pre_injection_peak_df = pd.DataFrame({'Timestamp': pre_injection_peak_timestamps, 'Amplitude': pre_injection_indiv_amplitudes})
     pre_injection_peak_csv_path = os.path.join(pre_injection_files_folder, f'{subject_folder}_{os.path.basename(pre_injection_files_folder)}_amplitudes_{time}_{suffix}.csv')
