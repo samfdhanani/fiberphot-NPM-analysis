@@ -40,13 +40,13 @@ for subject_folder in subject_folders:
 
     # Extract Delta_F_over_F and Time columns for each dataset
     pre_injection_dFF = pre_injection_dFF_df['dFF']
-    pre_injection_time = pre_injection_dFF_df['x axis']
+    pre_injection_time = pre_injection_dFF_df['ComputerTimestamp']
 
     post_injection_dFF = post_injection_dFF_df['dFF']
-    post_injection_time = post_injection_dFF_df['x axis']
+    post_injection_time = post_injection_dFF_df['ComputerTimestamp']
 
     full_session_dFF = full_session_dFF_df['dFF']
-    full_session_time = full_session_dFF_df['x axis']
+    full_session_time = full_session_dFF_df['ComputerTimestamp']
 
     # Parameters for peak detection
     height = 0
