@@ -121,9 +121,9 @@ for subject_folder in subject_folders:
     # Plot the pre_injection dff values
     plt.figure(figsize=(16, 8))
     plt.plot(x_axis_pre, dff_baseline, 'black', linewidth=1.5)
-    plt.xlabel(f'Time for pre_injection {time}')
+    plt.xlabel(f'x axis for {time}')
     plt.ylabel('ΔF/F')
-    plt.title(f'pre_injection ΔF/F for {subject_folder}')
+    plt.title(f'Pre_injection ΔF/F for {subject_folder}')
     plt.grid(True)
     pdf_pages_pre.savefig()
     pdf_pages_pre.close()
@@ -132,7 +132,7 @@ for subject_folder in subject_folders:
     # Plot the post-injection dff values
     plt.figure(figsize=(16, 8))
     plt.plot(x_axis_post, dff_post, 'black', linewidth=1.5)
-    plt.xlabel(f'Time for post-injection {time}')
+    plt.xlabel(f'x axis for {time}')
     plt.ylabel('ΔF/F')
     plt.title(f'Post-injection ΔF/F for {subject_folder}')
     plt.grid(True)
@@ -154,8 +154,3 @@ for subject_folder in subject_folders:
     
     print(f"pre_injection CSV file for {subject_folder} exported successfully!")
     print(f"Post-injection CSV file for {subject_folder} exported successfully!")
-
-    print(len(aligned_reference_post))
-    print(len(aligned_reference_pre))
-    print(len(aligned_signal_post))
-    print(len(aligned_signal_pre))
