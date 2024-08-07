@@ -55,12 +55,12 @@ SubjectID_photobleach_handle_removed.csv
 
 - This code is for quality control. It calculates how much time is being removed during the post_injection time period by summing up all the time differences greater than the injection end time stamp in column ‘Item2’ in the SubjectIDHandle.csv. 
 
-## pre_post_injection
+## pre_post_injection: calculating and visualizing the delta F/F values for the pre-injection and post-injection data
 
 **User Defined Variables**
 
-- "time" determines which files are being read, if you set a variable for x in file_transform that applies here or simply input 'all' if you want the entire filtered session dataframe read.
-- c,d,e,f = the x and y axis limits in the plot outputs
+- time: determines which files are being read, if you set a variable for x in file_transform that applies here or simply input 'all' if you want the entire filtered session dataframe read.
+- c,d,e,f: the x and y axis limits in the plot outputs
 
 **Outputs**
 
@@ -72,10 +72,35 @@ SubjectID_photobleach_handle_removed.csv
 - A linear regression is performed on the pre-injection data and used to calculate the delta F/F values for that data.
 - Then a linear regression model obtained from the pre_injection data is applied to the post-injection reference data to compare the post injection increase in signal relative to the pre-injection baseline.
 
-## full_session
+## full_session: calculating and visualizing the delta F/F values for the full session with handling and the injection time removed
 
 - this code uses the same methods for calculating the delta F/F values for the pre and post injection dataframes as pre_post_injection, the outputs however include both data sets together. 
 
-**Peak Analysis**
+## peak_data: analyzing the delta F/F values
+
+**User defined variables**
+- suffix: an optional description of find_peaks conditions used to keep track of files
+- time: same as before
+
+**Outputs**
+
+- SubjectID_pre_injection_peak_values_{time}_{suffix}.csv
+  - the peak delta F/F values from the scipy find_peaks function are labelled and printed into a csv file.
+- SubjectID_pre_injection_peak_startend_{time}_{suffix}.csv, also for post_injection
+  - a list of every peak with the start and end time and delta F/F values
+- peak_data_{time}_{suffix}.csv
+  - contains the following values:
+    - 'Subject Folder', 'Condition', 'Average dFF', 'Std dFF', 'Number of Peaks', 'Peaks per sec', 'Peaks per min','Frequency', 'Average Amplitude']
+
+  
+
+
+
+
+
+
+
+
+
 
 
