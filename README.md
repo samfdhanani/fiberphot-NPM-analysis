@@ -14,7 +14,7 @@ https://static1.squarespace.com/static/60ff345fca665d50e1adc805/t/65366fc82f93fd
 4. SubjectIDHandle.csv
    - this file contains pairs of timestamps indicating the times before and after manually handling a mouse in the open field. 
 
-## Transforming the data files before plotting and calculating the zdFF scores
+## file_transform: transforming the data files before plotting and calculating the zdFF scores
 
 **Reading the Bonsai Outputs**
 
@@ -43,7 +43,7 @@ SubjectID_photobleach_handle_removed.csv
 - The first timestamp in the injection csv file is used to determine the end of the pre-injection baseline period and the second timestamp in the injection csv file is used to determine the start of the post injection amph period which lasts until the end of the recording.
 - The full session data is made up of datapoints before and after the injection start and end times, in other words the injection time is removed from the data.
 
-**SubjectID_Xmin_baseline.csv**, **SubjectID_Xmin_amph.csv**, **SubjectID_all_full_session.csv**
+**SubjectID_Xmin_baseline.csv**, **SubjectID_Xmin_amph.csv**, **SubjectID_Xmin_full_session.csv**
 
 - The code starts by calculating how many rows to pull out before and after the injection time stamps based on the time the user wants and the frame rate.
 - The variable num_rows_interval determines how many rows are going to be pulled out based on the rows_per_min equation and the user defined time defined as ‘x’.
@@ -54,8 +54,28 @@ SubjectID_photobleach_handle_removed.csv
 **SubjectID_time_subtracted_values_amph.csv**
 
 - This code is for quality control. It calculates how much time is being removed during the post_injection time period by summing up all the time differences greater than the injection end time stamp in column ‘Item2’ in the SubjectIDHandle.csv. 
-Calculating the dFF values
-Harris lab script
 
-Peak Analysis
+## pre_post_injection
+
+**User Defined Variables**
+
+- "time" determines which files are being read, if you set a variable for x in file_transform that applies here or simply input 'all' if you want the entire filtered session dataframe read.
+- c,d,e,f = the x and y axis limits in the plot outputs
+
+**Outputs**
+
+- A pdf with a graph of the delta F/F values.
+- A csv file with the delta F/F values, the original ComputerTimestamp, and an arbitrary x-axis to plot the data without gaps caused by handling. 
+
+**calculating the delta F/F values**
+
+- A linear regression is performed on the pre-injection data and used to calculate the delta F/F values for that data.
+- Then a linear regression model obtained from the pre_injection data is applied to the post-injection reference data to compare the post injection increase in signal relative to the pre-injection baseline.
+
+## full_session
+
+- this code uses the same methods for calculating the delta F/F values for the pre and post injection dataframes as pre_post_injection, the outputs however include both data sets together. 
+
+**Peak Analysis**
+
 
