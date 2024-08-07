@@ -88,9 +88,25 @@ SubjectID_photobleach_handle_removed.csv
   - the peak delta F/F values from the scipy find_peaks function are labelled and printed into a csv file.
 - SubjectID_pre_injection_peak_startend_{time}_{suffix}.csv, also for post_injection
   - a list of every peak with the start and end time and delta F/F values
-- peak_data_{time}_{suffix}.csv
+- peak_data_{time}_{suffix}.csv (all subjects in the cohort folder are saved to the same csv file) 
   - contains the following values:
-    - 'Subject Folder', 'Condition', 'Average dFF', 'Std dFF', 'Number of Peaks', 'Peaks per sec', 'Peaks per min','Frequency', 'Average Amplitude']
+    - Subject Folder
+    - Condition
+    - Average delta F/F value
+    - Standard deviation of delta F/F values
+    - Number of Peaks
+    - Peaks per sec
+    - Peaks per min
+    - Frequency: total number of peaks divided by the total duration of the recording
+    - Average Amplitude
+  - this is only for the pre-injection data.
+- auc_{time}_{suffix}.csv (all subjects in the cohort folder are saved to the same csv file)
+  - the area under the curve is only calculated for the post-injection data using the trapezoidal method.
+- SubjectID_plots_dFF_{time}_{suffix}.pdf for pre-injection, post-inejction, and full session
+  - the delta F/F values are plotted with red dots identifying each peak called by the find_peaks function
+- SubjectID_pre_injection_amplitudes_10min_thresh0.csv
+  - timestamps and individual amplitudes are exported for the pre-injection data. 
+
 
   
 
