@@ -9,7 +9,7 @@ def create_transformed_files_folder(subject_folder_path):
     return transformed_files_folder
 
 # Path to the folder containing subject folders
-cohort_folder = '/Users/samdhanani/Desktop/MuhleLab/FiberPhotometry/Cohort_G'
+cohort_folder = '/Users/samdhanani/Desktop/MuhleLab/FiberPhotometry/Cohort_G' # '/filepath/folder containing subject folder(s)'
 # Get a list of subject folders
 subject_folders = [folder for folder in os.listdir(cohort_folder) if os.path.isdir(os.path.join(cohort_folder, folder))]
 
@@ -29,7 +29,7 @@ for subject_folder in subject_folders:
     start_time_df = pd.read_csv(start_file_path, header=None, names=['Item1', 'Item2'])
     handle_df = pd.read_csv(handle_file_path, header=None, names=['Item1', 'Item2'])
 
-    x = 0.1  # Set the number of minutes for the time interval of the pre and post injection periods!
+    x = 10  # Set the number of minutes for the time interval of the pre and post injection periods!
     frame_rate_hz = 60 # set the frame rate here! 
 
     # remove photobleaching data
@@ -154,15 +154,15 @@ for subject_folder in subject_folders:
     noinjection_df = photobleach_handle_removed_df[(photobleach_handle_removed_df['ComputerTimestamp'] <= pre_injection_timestamp_ms) | 
                                             (photobleach_handle_removed_df['ComputerTimestamp'] >= post_injection_timestamp_ms)]
 
-    pre_injection_file_path = os.path.join(transformed_files_folder, subject_folder + '_all_baseline.csv')
-    post_injection_file_path = os.path.join(transformed_files_folder, subject_folder + '_all_amph.csv')
+    pre_injection_file_path = os.path.join(transformed_files_folder, subject_folder + '_all_pre_injection.csv')
+    post_injection_file_path = os.path.join(transformed_files_folder, subject_folder + '_all_post_injection.csv')
     noinjection_full_session_file_path = os.path.join(transformed_files_folder, subject_folder + '_all_full_session.csv')
 
     pre_injection_df.to_csv(pre_injection_file_path, index=False)
     post_injection_df.to_csv(post_injection_file_path, index=False)
     noinjection_df.to_csv(noinjection_full_session_file_path, index=False)
-    print("baseline data saved to:", pre_injection_file_path)
-    print("amph data saved to:", post_injection_file_path)
+    print("pre-injection data saved to:", pre_injection_file_path)
+    print("post-injection data saved to:", post_injection_file_path)
     print("full session data saved to:", noinjection_full_session_file_path)
 
 
@@ -182,8 +182,8 @@ for subject_folder in subject_folders:
     post_injection_end_index = min(post_injection_df.index[0] + num_rows_interval, post_injection_df.index[-1])
     interval_post_injection_df = post_injection_df.loc[post_injection_df.index[0]:post_injection_end_index]
 
-    interval_pre_injection_file_path = os.path.join(transformed_files_folder, subject_folder + f'_{x}min_baseline.csv')
-    interval_post_injection_file_path = os.path.join(transformed_files_folder, subject_folder + f'_{x}min_amph.csv')
+    interval_pre_injection_file_path = os.path.join(transformed_files_folder, subject_folder + f'_{x}min_pre_injection.csv')
+    interval_post_injection_file_path = os.path.join(transformed_files_folder, subject_folder + f'_{x}min_post_injection.csv')
 
     interval_pre_injection_df.to_csv(interval_pre_injection_file_path, index=False)
     interval_post_injection_df.to_csv(interval_post_injection_file_path, index=False)
