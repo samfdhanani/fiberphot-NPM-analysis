@@ -3,8 +3,10 @@
 ## The Bonsai workflow
 All node structures and workflows are from the Neurophotmetrics Bonsai Textbook linked here:
 https://static1.squarespace.com/static/60ff345fca665d50e1adc805/t/65366fc82f93fd1b67b65a5b/1698066378544/BonsaiGuide_20231023.pdf
+
 All information regarding the FP3002 set up can be found through the Neurophotometrics documentation page linked here:
 https://neurophotometrics.com/documentation
+
 The Neurophotometrics Github page: https://github.com/neurophotometrics
 
 **Outputs**
