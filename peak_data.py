@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 cohort_folder = '/Users/samdhanani/Desktop/MuhleLab/FiberPhotometry/Cohort_G'
 
 # Define the suffix to be used for all new files
-suffix = 'thresh0' #description of find
+suffix = 'thresh0' #description of find_peaks parameters
 time = '10min' # or 'all' for uncropped data
 
 # Get a list of subject folders
@@ -40,13 +40,13 @@ for subject_folder in subject_folders:
 
     # Extract Delta_F_over_F and Time columns for each dataset
     pre_injection_dFF = pre_injection_dFF_df['dFF']
-    pre_injection_time = pre_injection_dFF_df['ComputerTimestamp']
+    pre_injection_time = pre_injection_dFF_df['x axis']
 
     post_injection_dFF = post_injection_dFF_df['dFF']
-    post_injection_time = post_injection_dFF_df['ComputerTimestamp']
+    post_injection_time = post_injection_dFF_df['x axis']
 
     full_session_dFF = full_session_dFF_df['dFF']
-    full_session_time = full_session_dFF_df['ComputerTimestamp']
+    full_session_time = full_session_dFF_df['x axis']
 
     # Parameters for peak detection
     height = 0
@@ -113,7 +113,7 @@ for subject_folder in subject_folders:
                 'End dFF': end_dff
             })
 
-    # # Create DataFrames from peak data
+    # Create DataFrames from peak data
     pre_injection_peak_df = pd.DataFrame(pre_injection_peak_data)
     post_injection_peak_df = pd.DataFrame(post_injection_peak_data)
 
@@ -134,14 +134,17 @@ for subject_folder in subject_folders:
     full_session_peak_timestamps = full_session_time.iloc[full_session_peaks]
     full_session_peak_values = full_session_dFF.iloc[full_session_peaks]
 
+    # Calculate amplitude for each peak individually
     pre_injection_frequency = len(pre_injection_peaks) / (pre_injection_time.iloc[-1] - pre_injection_time.iloc[0])
-    pre_injection_indiv_amplitudes = pre_injection_peak_values - pre_injection_peak_values.min()  # Calculate amplitude for each peak individually
+    pre_injection_indiv_amplitudes = pre_injection_peak_values - pre_injection_peak_values.min()  
     pre_injection_average_amplitude = pre_injection_indiv_amplitudes.mean()
 
+    # Calculate amplitude for each peak individually
     post_injection_frequency = len(post_injection_peaks) / (post_injection_time.iloc[-1] - post_injection_time.iloc[0])
-    post_injection_indiv_amplitudes = post_injection_peak_values - post_injection_peak_values.min()  # Calculate amplitude for each peak individually
+    post_injection_indiv_amplitudes = post_injection_peak_values - post_injection_peak_values.min()  
     post_injection_average_amplitude = post_injection_indiv_amplitudes.mean()
 
+    # Calculate the area under the curve for the post-injection period
     post_injection_peak_auc = 0
     for i in range(len(post_injection_peak_timestamps) - 1):
         peak_start = post_injection_peak_timestamps.iloc[i]
@@ -150,22 +153,27 @@ for subject_folder in subject_folders:
                              post_injection_time[(post_injection_time >= peak_start) & (post_injection_time <= peak_end)])
         post_injection_peak_auc += peak_area
 
+    # Find the number of peaks
     pre_injection_num_peaks = len(pre_injection_peaks)
     post_injection_num_peaks = len(post_injection_peaks)
 
+    # Find the total time of the pre injection time (used later to find peak rates)
     pre_injection_total_time = np.subtract(pre_injection_dFF_df['ComputerTimestamp'].iloc[-1], pre_injection_dFF_df['ComputerTimestamp'].iloc[0])
     pre_injection_total_time_sec = np.divide(pre_injection_total_time, 1000)
     pre_injection_total_time_min = np.divide(pre_injection_total_time_sec, 60)
 
+    # Find the averages and standard deviation of the dFF values
     pre_injection_average_dFF = pre_injection_dFF.mean()
     pre_injection_std_dFF = pre_injection_dFF.std()
 
     post_injection_average_dFF = post_injection_dFF.mean()
     post_injection_std_dFF = post_injection_dFF.std()
     
+    # Find the number of peaks per second
     pre_injection_peakspersec = np.divide(pre_injection_num_peaks,pre_injection_total_time_sec) 
     pre_injection_peakspermin = np.divide(pre_injection_num_peaks,pre_injection_total_time_min)
 
+    # Organize peak data
     peak_data.append([
         subject_folder,
         'pre_injection',
@@ -178,6 +186,7 @@ for subject_folder in subject_folders:
         pre_injection_average_amplitude, 
     ])
 
+    # Organize AUC data for post injection
     auc_data.append([
         subject_folder,
         'post_injection',
@@ -199,6 +208,7 @@ for subject_folder in subject_folders:
 
     print("AUC data for post_injection saved")
 
+    # Save pdf files of the plots
     pre_injection_pdf_file_path = os.path.join(pre_injection_files_folder, subject_folder + f'_plots_dFF_{time}_{suffix}.pdf')
     pre_injection_pdf_pages = PdfPages(pre_injection_pdf_file_path)
 
@@ -208,6 +218,7 @@ for subject_folder in subject_folders:
     full_session_pdf_file_path = os.path.join(full_session_files_folder, subject_folder + f'_plots_dFF_{time}_{suffix}.pdf')
     full_session_pdf_pages = PdfPages(full_session_pdf_file_path)
 
+    # plots the dFF values and mark the detected peaks on the 
     plt.figure(figsize=(12, 6))
     plt.plot(pre_injection_dFF_df['x axis'], pre_injection_dFF_df['dFF'], color='black', linewidth=1)
     plt.plot(pre_injection_peak_timestamps, pre_injection_peak_values, 'ro', markersize=5)  # Mark detected peaks
@@ -240,6 +251,7 @@ for subject_folder in subject_folders:
     full_session_pdf_pages.close()
     plt.close('all')
 
+    # save pre-injection information, the timestamp and amplitudes
     pre_injection_peak_df = pd.DataFrame({'Timestamp': pre_injection_peak_timestamps, 'Amplitude': pre_injection_indiv_amplitudes})
     pre_injection_peak_csv_path = os.path.join(pre_injection_files_folder, f'{subject_folder}_{os.path.basename(pre_injection_files_folder)}_amplitudes_{time}_{suffix}.csv')
     pre_injection_peak_df.to_csv(pre_injection_peak_csv_path, index=False)
